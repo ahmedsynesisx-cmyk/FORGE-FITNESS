@@ -235,3 +235,24 @@ test('body: all six measurements save, including comma decimals', async ({ page 
   await expect(page.getByRole('status')).toHaveText(/^Saved\./);
   await expect(page.getByText('waist 81.5 · hip 94 · chest 92.5 · arm 28 · thigh 52 · neck 35')).toBeVisible();
 });
+
+test('body: reuse an earlier entry and see progress', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('button', { name: 'Go to Today' }).click();
+  await expect(page.getByText('65.5 → 59 kg')).toBeVisible();
+  await page.getByRole('button', { name: 'Body', exact: true }).click();
+  await page.getByLabel('Waist (cm)').fill('81.5');
+  await page.getByLabel('Neck (cm)').fill('35');
+  await page.getByRole('button', { name: 'Save measurement' }).click();
+  await expect(page.getByRole('status')).toHaveText(/^Saved\./);
+  await page.getByRole('button', { name: /Use numbers from/ }).first().click();
+  await expect(page.getByLabel('Waist (cm)')).toHaveValue('81.5');
+  await expect(page.getByLabel('Neck (cm)')).toHaveValue('35');
+  await page.getByLabel('Waist (cm)').fill('80');
+  await page.getByRole('button', { name: 'Save measurement' }).click();
+  await expect(page.getByText('81.5 → 80')).toBeVisible();
+  await expect(page.getByText('(−1.5)')).toBeVisible();
+  page.once('dialog', (d) => d.dismiss());
+  await page.getByRole('button', { name: /Delete measurement from/ }).first().click();
+  await expect(page.getByText('81.5 → 80')).toBeVisible();
+});

@@ -73,9 +73,17 @@ function Today({ goBody }: { goBody: () => void }) {
 
       <div className="flex flex-col gap-2 rounded-3xl bg-gold p-5">
         <span className="text-xs font-extrabold uppercase tracking-[0.08em]">Today's training</span>
-        <strong className="text-[22px] leading-tight tracking-tight">{status === 'red' ? 'Walking and recovery only' : 'Your workout plan arrives in the next update'}</strong>
-        <span className="text-sm font-semibold">Meanwhile: a brisk 30-minute walk counts toward your 150+ minutes this week.</span>
+        <strong className="text-[22px] leading-tight tracking-tight">{status === 'red' ? 'Walking and recovery only' : 'Workout plan: being built now'}</strong>
+        <span className="text-sm font-semibold">{status === 'red' ? 'A brisk 30-minute walk still counts toward your 150+ minutes this week.' : 'Your 3-day plan, exercises and timer will appear right here once ready. Until then, a brisk 30-minute walk counts toward your 150+ minutes this week.'}</span>
       </div>
+
+      {tl && (
+        <Card className="flex flex-col gap-1">
+          <span className="text-xs font-bold uppercase tracking-[0.06em] text-slate">Your goal · {PACES.find((x) => x.id === g.pacing)!.name} pace</span>
+          <strong className="text-2xl tabular-nums">{round1(thisWeek ?? weight)} → {g.targetWeightKg} kg</strong>
+          <span className="text-xs text-slate">About {round1(tl.weeklyKg)} kg a week, so roughly {tl.weeksMin}–{tl.weeksMax} weeks. An estimate, not a promise: weekly averages and your waist show real progress. Change pace in Settings.</span>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-2.5">
         <Card className="flex flex-col gap-1">
@@ -108,11 +116,6 @@ function Today({ goBody }: { goBody: () => void }) {
         <button type="button" onClick={goBody} className="min-h-[44px] rounded-xl border-[1.5px] border-line text-sm font-bold">Add waist and other measurements</button>
       </Card>
 
-      {tl && (
-        <Notice title={`Pace: ${PACES.find((x) => x.id === g.pacing)!.name}`}>
-          About {round1(tl.weeklyKg)} kg a week puts {g.targetWeightKg} kg roughly {tl.weeksMin}–{tl.weeksMax} weeks away. That's an estimate, not a promise: weekly averages and your waist show real progress.
-        </Notice>
-      )}
     </div>
   );
 }
@@ -129,7 +132,8 @@ const GUIDE: { key: keyof Measurement; label: string; how: string }[] = [
 function Body() {
   const { data, save } = useVault();
   const p = data.profile!;
-  const ms = [...(data.measurements ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+  // Newest first; entries from the same day keep the most recently saved on top.
+  const ms = (data.measurements ?? []).map((m, i) => ({ m, i })).sort((a, b) => b.m.date.localeCompare(a.m.date) || b.i - a.i).map((x) => x.m);
   const [vals, setVals] = useState<Record<string, string>>({});
   const [date, setDate] = useState(today());
   const [msg, setMsg] = useState<string | null>(null);
@@ -139,6 +143,21 @@ function Body() {
   const valid = any && !Object.values(errs).some(Boolean) && /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= today();
   const lastWaist = ms.find((m) => m.waistCm !== undefined);
   const whtr = lastWaist ? waistToHeight(lastWaist.waistCm!, p.heightCm) : null;
+  const use = (m: Measurement) => {
+    const next: Record<string, string> = {};
+    for (const k of ['weightKg', ...GUIDE.map((g) => g.key)] as (keyof Measurement)[]) if (typeof m[k] === 'number') next[k] = String(m[k]);
+    setVals(next);
+    setDate(today());
+    setMsg(`Filled in from ${m.date}. Change any number that's different, then save.`);
+    document.getElementById('new-measurement')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const progress = (['weightKg', ...GUIDE.map((g) => g.key)] as (keyof Measurement)[]).flatMap((k) => {
+    const withK = [...ms].filter((m) => typeof m[k] === 'number').reverse();
+    if (withK.length < 2) return [];
+    const first = withK[0], last = withK.at(-1)!;
+    const d = round1((last[k] as number) - (first[k] as number));
+    return [{ k, label: k === 'weightKg' ? 'Weight (kg)' : GUIDE.find((g) => g.key === k)!.label, first, last, d }];
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -150,8 +169,23 @@ function Body() {
           <span className="text-xs text-slate">From {lastWaist!.waistCm} cm on {lastWaist!.date}. Waist is your main progress measure: lower over time is the aim.</span>
         </Card>
       )}
+      {progress.length > 0 && (
+        <Card className="flex flex-col gap-2">
+          <strong className="text-[15px]">Progress so far</strong>
+          {progress.map((x) => (
+            <div key={x.k} className="flex items-baseline justify-between gap-2 text-sm">
+              <span>{x.label.replace(/ \((cm|kg)\)/, '')}</span>
+              <span className="text-right tabular-nums">
+                {x.first[x.k] as number} → {x.last[x.k] as number}{' '}
+                <strong className={x.d < 0 ? 'text-good' : 'text-slate'}>({x.d > 0 ? '+' : x.d < 0 ? '−' : '±'}{Math.abs(x.d)})</strong>
+              </span>
+            </div>
+          ))}
+          <span className="text-xs text-slate">First entry vs latest. For waist, lower is the aim.</span>
+        </Card>
+      )}
       <Card className="flex flex-col gap-3">
-        <strong className="text-[15px]">New measurement</strong>
+        <strong id="new-measurement" className="scroll-mt-4 text-[15px]">New measurement</strong>
         <Field label="Date" value={date} onChange={setDate} hint="YYYY-MM-DD" error={!/^\d{4}-\d{2}-\d{2}$/.test(date) ? `Write the date like ${today()}.` : date > today() ? 'Date cannot be in the future.' : null} />
         <Field label="Weight (kg)" type="number" inputMode="decimal" value={vals.weightKg ?? ''} onChange={(v) => { setVals({ ...vals, weightKg: v }); setMsg(null); }} error={errs.weightKg ? 'Between 30 and 250 kg.' : null} />
         {GUIDE.map((g) => (
@@ -184,7 +218,10 @@ function Body() {
                 {[m.weightKg && `${m.weightKg} kg`, m.waistCm && `waist ${m.waistCm}`, m.hipCm && `hip ${m.hipCm}`, m.chestCm && `chest ${m.chestCm}`, m.armCm && `arm ${m.armCm}`, m.thighCm && `thigh ${m.thighCm}`, m.neckCm && `neck ${m.neckCm}`].filter(Boolean).join(' · ')}
               </span>
             </div>
-            <button type="button" aria-label={`Delete measurement from ${m.date}`} onClick={() => save('measurements', (data.measurements ?? []).filter((x) => x.id !== m.id))} className="min-h-[44px] rounded-lg px-3 text-xs font-bold text-danger">Delete</button>
+            <div className="flex shrink-0 flex-col items-end">
+              <button type="button" aria-label={`Use numbers from ${m.date}`} onClick={() => use(m)} className="min-h-[44px] rounded-lg bg-butter px-3 text-xs font-bold text-goldink">Use these</button>
+              <button type="button" aria-label={`Delete measurement from ${m.date}`} onClick={() => { if (confirm(`Delete the measurement from ${m.date}?`)) save('measurements', (data.measurements ?? []).filter((x) => x.id !== m.id)); }} className="min-h-[44px] rounded-lg px-3 text-xs font-bold text-danger">Delete</button>
+            </div>
           </div>
         ))}
       </div>

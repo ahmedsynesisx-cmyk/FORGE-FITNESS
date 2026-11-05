@@ -3,7 +3,7 @@ import { Vault } from './store';
 import type { AuditEntry, CollectionName, Collections } from './types';
 
 export type Data = Partial<Collections>;
-const ALL: CollectionName[] = ['profile', 'health', 'lifestyle', 'fitness', 'equipment', 'food', 'goals', 'measurements', 'audit', 'onboarding'];
+const ALL: CollectionName[] = ['profile', 'health', 'lifestyle', 'fitness', 'equipment', 'food', 'goals', 'measurements', 'audit', 'onboarding', 'training', 'sessions'];
 const AUTO_LOCK_MS = 5 * 60 * 1000;
 
 interface Ctx {
@@ -107,7 +107,6 @@ export function useVault(): Ctx {
   return c;
 }
 
-export function today(): string {
-  const d = new Date();
+export function today(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

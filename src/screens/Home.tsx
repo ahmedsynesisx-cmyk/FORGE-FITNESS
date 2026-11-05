@@ -2,25 +2,31 @@ import { useState } from 'react';
 import { Button, Card, Choices, Field, Notice, num } from '../components/ui';
 import { LIMITS, bmi, bmiCategoryIndia, bmiCategoryWHO, inRange, lossTimeline, proteinTargetG, round1, waistToHeight } from '../lib/body';
 import { evaluateSafety } from '../lib/safety';
-import type { Measurement, Pacing } from '../lib/types';
+import type { Measurement, Pacing, SessionKey } from '../lib/types';
 import { today, useVault } from '../lib/vault-context';
 import { PACES } from './Onboarding';
 import Settings from './Settings';
+import Train, { TrainingCard } from './Train';
+import Workout from './Workout';
 
-type Tab = 'today' | 'body' | 'settings';
+type Tab = 'today' | 'train' | 'body' | 'settings';
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('today');
+  const [workout, setWorkout] = useState<SessionKey | null>(null);
+  if (workout) return <Workout sessionKey={workout} onExit={() => { setWorkout(null); setTab('today'); window.scrollTo(0, 0); }} />;
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col bg-cream">
       <div className="flex-1 px-5 pb-28 pt-6">
-        {tab === 'today' && <Today goBody={() => setTab('body')} />}
+        {tab === 'today' && <Today goBody={() => setTab('body')} onStart={setWorkout} />}
+        {tab === 'train' && <Train onStart={setWorkout} />}
         {tab === 'body' && <Body />}
         {tab === 'settings' && <Settings />}
       </div>
-      <nav aria-label="Main" className="fixed bottom-0 left-1/2 grid w-full max-w-md -translate-x-1/2 grid-cols-3 border-t border-line bg-white px-3 pb-5 pt-2">
+      <nav aria-label="Main" className="fixed bottom-0 left-1/2 grid w-full max-w-md -translate-x-1/2 grid-cols-4 border-t border-line bg-white px-3 pb-5 pt-2">
         {([
           ['today', 'Today', 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z'],
+          ['train', 'Train', 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12'],
           ['body', 'Body', 'M4 19V5M4 19h16M8 15l4-4 3 3 5-6'],
           ['settings', 'Settings', 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z'],
         ] as [Tab, string, string][]).map(([id, label, d]) => (
@@ -46,7 +52,7 @@ export function weeklyAverages(ms: Measurement[], now = today()) {
   return { thisWeek: avg(0, 7), lastWeek: avg(7, 14) };
 }
 
-function Today({ goBody }: { goBody: () => void }) {
+function Today({ goBody, onStart }: { goBody: () => void; onStart: (k: SessionKey) => void }) {
   const { data, save } = useVault();
   const p = data.profile!, g = data.goals!;
   const ms = data.measurements ?? [];
@@ -71,11 +77,7 @@ function Today({ goBody }: { goBody: () => void }) {
 
       {status === 'red' && <Notice tone="danger" title="Workouts locked">A safety answer needs a doctor's check first. You can change this in Settings once you are cleared.</Notice>}
 
-      <div className="flex flex-col gap-2 rounded-3xl bg-gold p-5">
-        <span className="text-xs font-extrabold uppercase tracking-[0.08em]">Today's training</span>
-        <strong className="text-[22px] leading-tight tracking-tight">{status === 'red' ? 'Walking and recovery only' : 'Workout plan: being built now'}</strong>
-        <span className="text-sm font-semibold">{status === 'red' ? 'A brisk 30-minute walk still counts toward your 150+ minutes this week.' : 'Your 3-day plan, exercises and timer will appear right here once ready. Until then, a brisk 30-minute walk counts toward your 150+ minutes this week.'}</span>
-      </div>
+      <TrainingCard onStart={onStart} />
 
       {tl && (
         <Card className="flex flex-col gap-1">

@@ -1,3 +1,4 @@
+import Figure from '../components/Figure';
 import { Button, Card, Notice } from '../components/ui';
 import { byId } from '../lib/exercises';
 import { initTraining, nextKey, nextTrainingDay, planSession, trainingDays, weekday } from '../lib/plan';
@@ -88,6 +89,7 @@ export default function Train({ onStart }: { onStart: (k: SessionKey) => void })
                   <span className="font-bold">{it.exercise.name}</span>
                   <span className="shrink-0 font-bold text-goldink">{it.sets} × {it.exercise.mode === 'time' ? `${it.target} s` : it.target}{it.exercise.perSide ? ' each side' : ''}</span>
                 </summary>
+                <Figure id={it.exercise.id} label={it.exercise.name} className="mx-auto mt-2 h-32 w-full max-w-[260px] rounded-xl bg-cream" />
                 <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-sm">{it.exercise.steps.map((s) => <li key={s}>{s}</li>)}</ol>
                 <p className="mt-1 text-xs text-slate">Tip: {it.exercise.cues}</p>
               </details>

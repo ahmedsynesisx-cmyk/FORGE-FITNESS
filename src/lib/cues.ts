@@ -50,3 +50,40 @@ export async function keepAwake(): Promise<() => void> {
     void lock?.release().catch(() => undefined);
   };
 }
+
+// ---------- Voice coach (built into the phone, free, works offline on most Android phones) ----------
+const VOICE_KEY = 'forge-voice';
+export function voiceOn(): boolean {
+  try {
+    return localStorage.getItem(VOICE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+export function setVoice(on: boolean) {
+  try {
+    localStorage.setItem(VOICE_KEY, on ? 'on' : 'off');
+  } catch {
+    /* private mode: setting just won't be remembered */
+  }
+  if (!on) stopSpeaking();
+}
+export function speak(text: string) {
+  try {
+    if (!voiceOn() || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-IN';
+    u.rate = 1.02;
+    window.speechSynthesis.speak(u);
+  } catch {
+    /* no voice available */
+  }
+}
+export function stopSpeaking() {
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* ignore */
+  }
+}

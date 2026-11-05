@@ -1,0 +1,23 @@
+// Short original lines for the workout screen. Rotated every few seconds.
+export const QUOTES = [
+  'Slow reps, strong body.',
+  'You only have to win this set.',
+  'Breathe out on the hard part.',
+  'Strong is built one rep at a time.',
+  'The hardest part was starting. Done.',
+  'Good form today, more reps tomorrow.',
+  'Feel it working. Keep it clean.',
+  'Every set is a vote for the person you want to be.',
+  'You showed up. That already counts.',
+  'Consistency beats intensity.',
+  'Steady breathing, steady pace.',
+  'Small steps every week add up to big change.',
+  'Rest is part of the plan, not a break from it.',
+  'Your future self is cheering for you.',
+  'Quality first. Speed never.',
+  'Three more weeks of this and you will feel the difference.',
+  'Tired is fine. Pain is a stop sign.',
+  'Proud of the effort, not just the result.',
+  'One more good rep beats three sloppy ones.',
+  'You are stronger than last week.',
+];

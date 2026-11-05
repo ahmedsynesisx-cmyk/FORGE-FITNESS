@@ -265,13 +265,15 @@ test('workout player: auto timers, one-tap done, rest +30, feel, progression', a
   await page.screenshot({ path: test.info().outputPath('today-workout.png') });
   await page.getByRole('button', { name: 'Start workout' }).click();
   await expect(page.getByRole('heading', { name: 'Workout A' })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('overview.png'), fullPage: true });
   await expect(page.getByText('2 × 6')).toBeVisible(); // week 1: 2 sets, push-ups from the 9-rep test
   await page.getByRole('button', { name: 'Start workout' }).click();
 
   // Timed warm-up: 3-2-1 get-ready, then the move's own countdown starts by itself.
   await expect(page.getByRole('heading', { name: 'March on the spot' })).toBeVisible();
   await expect(page.getByText('Get ready…')).toBeVisible();
-  await page.clock.fastForward(3100);
+  await page.screenshot({ path: test.info().outputPath('warm-ready.png') });
+  await page.clock.fastForward(5100);
   await expect(page.getByTestId('timer')).toHaveText(/^(60|59)$/);
   await page.clock.fastForward(60_500);
   await expect(page.getByRole('heading', { name: 'Arm circles' })).toBeVisible();
@@ -279,6 +281,9 @@ test('workout player: auto timers, one-tap done, rest +30, feel, progression', a
 
   // Reps: one tap, then rest starts at 30 s by itself.
   await expect(page.getByRole('heading', { name: 'Push-up' })).toBeVisible();
+  await expect(page.getByText('Exercise 1 of 5 · Set 1 of 2')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Demo: Push-up' })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('reps.png') });
   await page.getByRole('button', { name: 'Done: 6 reps' }).click();
   await expect(page.getByTestId('timer')).toHaveText(/^(30|29)$/);
   await page.getByRole('button', { name: '+30 s' }).click();

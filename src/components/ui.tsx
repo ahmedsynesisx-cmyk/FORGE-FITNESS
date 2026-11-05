@@ -37,14 +37,15 @@ export function Field(props: {
       </label>
       <input
         id={id}
-        type={props.type ?? 'text'}
+        // Numbers use a text box with a number keyboard: Android's type="number" silently empties values like "81,5", which left Save disabled with no message.
+        type={props.type === 'number' ? 'text' : props.type ?? 'text'}
         value={props.value}
-        inputMode={props.inputMode}
+        inputMode={props.inputMode ?? (props.type === 'number' ? 'decimal' : undefined)}
         placeholder={props.placeholder}
         autoComplete={props.autoComplete ?? 'off'}
         aria-invalid={!!props.error}
         aria-describedby={props.hint || props.error ? id + '-hint' : undefined}
-        onChange={(e) => props.onChange(e.target.value)}
+        onChange={(e) => props.onChange(props.type === 'number' ? e.target.value.replace(/[^\d.,]/g, '') : e.target.value)}
         className={`h-12 rounded-xl border-[1.5px] bg-white px-3.5 text-base font-medium outline-none focus:border-charcoal ${props.error ? 'border-danger' : 'border-line'}`}
       />
       {(props.error || props.hint) && (

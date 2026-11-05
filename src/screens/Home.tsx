@@ -152,11 +152,11 @@ function Body() {
       )}
       <Card className="flex flex-col gap-3">
         <strong className="text-[15px]">New measurement</strong>
-        <Field label="Date" value={date} onChange={setDate} hint="YYYY-MM-DD" error={date > today() ? 'Date cannot be in the future.' : null} />
-        <Field label="Weight (kg)" type="number" inputMode="decimal" value={vals.weightKg ?? ''} onChange={(v) => setVals({ ...vals, weightKg: v })} error={errs.weightKg ? 'Between 30 and 250 kg.' : null} />
+        <Field label="Date" value={date} onChange={setDate} hint="YYYY-MM-DD" error={!/^\d{4}-\d{2}-\d{2}$/.test(date) ? `Write the date like ${today()}.` : date > today() ? 'Date cannot be in the future.' : null} />
+        <Field label="Weight (kg)" type="number" inputMode="decimal" value={vals.weightKg ?? ''} onChange={(v) => { setVals({ ...vals, weightKg: v }); setMsg(null); }} error={errs.weightKg ? 'Between 30 and 250 kg.' : null} />
         {GUIDE.map((g) => (
           <div key={g.key} className="flex flex-col gap-1">
-            <Field label={g.label} type="number" inputMode="decimal" value={vals[g.key] ?? ''} onChange={(v) => setVals({ ...vals, [g.key]: v })} error={errs[g.key] ? 'Between 15 and 250 cm.' : null} />
+            <Field label={g.label} type="number" inputMode="decimal" value={vals[g.key] ?? ''} onChange={(v) => { setVals({ ...vals, [g.key]: v }); setMsg(null); }} error={errs[g.key] ? 'Between 15 and 250 cm.' : null} />
             <details className="text-xs text-slate">
               <summary className="cursor-pointer py-1 font-bold text-goldink">How to measure</summary>
               <p className="pt-1 leading-relaxed">{g.how}</p>
@@ -164,7 +164,12 @@ function Body() {
           </div>
         ))}
         <Notice>Same time of day, same tape, same spot. Every 2 weeks is enough; small changes are often just water.</Notice>
-        <Button disabled={!valid} onClick={async () => { await save('measurements', [...(data.measurements ?? []), { id: crypto.randomUUID(), date, ...(parsed as Partial<Measurement>) }]); setVals({}); setMsg('Saved.'); }}>Save measurement</Button>
+        <Button disabled={!valid} onClick={async () => { await save('measurements', [...(data.measurements ?? []), { id: crypto.randomUUID(), date, ...(parsed as Partial<Measurement>) }]); setVals({}); setMsg('Saved. See it under History below.'); }}>Save measurement</Button>
+        {!valid && (
+          <span className="text-sm text-slate">
+            {!any ? 'Enter at least one measurement to save.' : 'Fix the box marked in red to save.'}
+          </span>
+        )}
         {msg && <span role="status" className="text-sm font-bold text-good">{msg}</span>}
       </Card>
 

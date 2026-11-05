@@ -1,6 +1,6 @@
 // Forge service worker: makes the app open offline after the first visit.
 // Network-first for the page (so updates arrive), cache-first for built assets.
-const CACHE = 'forge-v1';
+const CACHE = 'forge-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])));
@@ -18,8 +18,9 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (req.mode === 'navigate') {
+    // 'no-cache' skips the browser's 10-minute page cache on GitHub Pages, so a new version shows on the next open.
     event.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put('./index.html', copy));

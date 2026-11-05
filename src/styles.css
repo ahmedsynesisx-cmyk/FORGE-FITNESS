@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: #FFFFFF; color: #1C1C1E; font-family: Manrope, system-ui, sans-serif; }
+button, input { font-family: inherit; }
+:focus-visible { outline: 3px solid #1C1C1E; outline-offset: 2px; }

@@ -92,6 +92,14 @@ export interface AuditEntry {
   why: string;
 }
 
+export type Feel = 'easy' | 'right' | 'hard' | 'pain';
+export type SessionKey = 'A' | 'B';
+export interface SlotState { exerciseId: string; target: number; streak: number }
+export interface SetLog { exerciseId: string; set: number; target: number; done: number }
+export interface ActiveSession { id: string; date: string; key: SessionKey; startedAt: string; stepIndex: number; sets: SetLog[]; feel: Record<string, Feel> }
+export interface Training { startedAt: string; slots: Record<string, SlotState>; active: ActiveSession | null }
+export interface SessionLog { id: string; date: string; key: SessionKey; startedAt: string; finishedAt: string; sets: SetLog[]; feel: Record<string, Feel>; changes: string[]; complete: boolean }
+
 export interface Collections {
   profile: Profile;
   health: HealthScreen;
@@ -103,6 +111,8 @@ export interface Collections {
   measurements: Measurement[];
   audit: AuditEntry[];
   onboarding: { done: boolean; step: number };
+  training: Training;
+  sessions: SessionLog[];
 }
 
 export type CollectionName = keyof Collections;

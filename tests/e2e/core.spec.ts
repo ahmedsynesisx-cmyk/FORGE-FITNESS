@@ -202,7 +202,7 @@ test('backup, erase, restore (wrong passcode and bad file rejected)', async ({ p
 test('no sideways scrolling on any screen size', async ({ page }) => {
   await onboard(page);
   await page.getByRole('button', { name: 'Go to Today' }).click();
-  for (const tab of ['Today', 'Body', 'Settings']) {
+  for (const tab of ['Today', 'Train', 'Body', 'Settings']) {
     await page.getByRole('button', { name: tab, exact: true }).click();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${tab} overflows`).toBeLessThanOrEqual(0);
@@ -255,4 +255,68 @@ test('body: reuse an earlier entry and see progress', async ({ page }) => {
   page.once('dialog', (d) => d.dismiss());
   await page.getByRole('button', { name: /Delete measurement from/ }).first().click();
   await expect(page.getByText('81.5 → 80')).toBeVisible();
+});
+
+test('workout player: auto timers, one-tap done, rest +30, feel, progression', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-09T18:00:00') }); // a Monday, one of the chosen days
+  await onboard(page);
+  await page.getByRole('button', { name: 'Go to Today' }).click();
+  await expect(page.getByText(/Workout A · about \d+ min/)).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('today-workout.png') });
+  await page.getByRole('button', { name: 'Start workout' }).click();
+  await expect(page.getByRole('heading', { name: 'Workout A' })).toBeVisible();
+  await expect(page.getByText('2 × 6')).toBeVisible(); // week 1: 2 sets, push-ups from the 9-rep test
+  await page.getByRole('button', { name: 'Start workout' }).click();
+
+  // Timed warm-up: 3-2-1 get-ready, then the move's own countdown starts by itself.
+  await expect(page.getByRole('heading', { name: 'March on the spot' })).toBeVisible();
+  await expect(page.getByText('Get ready…')).toBeVisible();
+  await page.clock.fastForward(3100);
+  await expect(page.getByTestId('timer')).toHaveText(/^(60|59)$/);
+  await page.clock.fastForward(60_500);
+  await expect(page.getByRole('heading', { name: 'Arm circles' })).toBeVisible();
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Skip', exact: true }).click();
+
+  // Reps: one tap, then rest starts at 30 s by itself.
+  await expect(page.getByRole('heading', { name: 'Push-up' })).toBeVisible();
+  await page.getByRole('button', { name: 'Done: 6 reps' }).click();
+  await expect(page.getByTestId('timer')).toHaveText(/^(30|29)$/);
+  await page.getByRole('button', { name: '+30 s' }).click();
+  await expect(page.getByTestId('timer')).toHaveText(/^(60|59)$/);
+  await page.getByRole('button', { name: 'Skip rest' }).click();
+
+  // Different number, then feel during the rest, and the rest ends by itself.
+  await page.getByRole('button', { name: 'Did a different number?' }).click();
+  await page.getByRole('button', { name: 'One more' }).click();
+  await page.getByRole('button', { name: 'One more' }).click();
+  await page.getByRole('button', { name: 'Save 8 reps' }).click();
+  await page.getByRole('group', { name: 'How did Push-up feel?' }).getByRole('button', { name: 'Easy' }).click();
+  await page.screenshot({ path: test.info().outputPath('rest-feel.png') });
+  await page.clock.fastForward(31_000);
+  await expect(page.getByRole('heading', { name: 'Bodyweight squat' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'End', exact: true }).click();
+  await page.getByRole('button', { name: 'End workout' }).click();
+  await expect(page.getByRole('heading', { name: 'Workout saved' })).toBeVisible();
+  await expect(page.getByText(/Push-up: every set done .* goes up to 8 reps/)).toBeVisible();
+  await page.getByRole('button', { name: 'Back to Today' }).click();
+  await expect(page.getByText('Workout A done. Nice work.')).toBeVisible();
+  await page.getByRole('button', { name: 'Train', exact: true }).click();
+  await expect(page.getByText('2026-11-09 · Workout A')).toBeVisible();
+  await expect(page.getByText('Workout B · next')).toBeVisible();
+});
+
+test('pain button stops the exercise and makes it easier next time', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-09T18:00:00') });
+  await onboard(page);
+  await page.getByRole('button', { name: 'Go to Today' }).click();
+  await page.getByRole('button', { name: 'Start workout' }).click();
+  await page.getByRole('button', { name: 'Start workout' }).click();
+  for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Skip', exact: true }).click();
+  await page.getByRole('button', { name: 'This hurts: stop this exercise' }).click();
+  await expect(page.getByText('Stopped that exercise')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bodyweight squat' })).toBeVisible();
+  await page.getByRole('button', { name: 'End', exact: true }).click();
+  await page.getByRole('button', { name: 'End workout' }).click();
+  await expect(page.getByText(/Push-up hurt, so next time it's Knee push-up instead/)).toBeVisible();
 });

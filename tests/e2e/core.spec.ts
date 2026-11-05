@@ -107,7 +107,7 @@ test('full onboarding, today screen, weight and measurements', async ({ page }) 
   await page.getByRole('button', { name: 'Body', exact: true }).click();
   await page.getByLabel('Waist (cm)').fill('81');
   await page.getByRole('button', { name: 'Save measurement' }).click();
-  await expect(page.getByRole('status')).toHaveText('Saved.');
+  await expect(page.getByRole('status')).toHaveText(/^Saved\./);
   await expect(page.getByText('0.50')).toBeVisible();
   await page.getByLabel('Waist (cm)').fill('999');
   await expect(page.getByText('Between 15 and 250 cm.')).toBeVisible();
@@ -218,4 +218,20 @@ test('opens offline after the first visit', async ({ page, context }) => {
   await page.reload();
   await expect(page.getByRole('button', { name: 'Get started' })).toBeVisible();
   await context.setOffline(false);
+});
+
+test('body: all six measurements save, including comma decimals', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('button', { name: 'Go to Today' }).click();
+  await page.getByRole('button', { name: 'Body', exact: true }).click();
+  const vals: [string, string][] = [['Waist (cm)', '81,5'], ['Hip (cm)', '94'], ['Chest (cm)', '92.5'], ['Upper arm (cm)', '28'], ['Thigh (cm)', '52'], ['Neck (cm)', '35']];
+  for (const [label, v] of vals) {
+    await page.getByLabel(label).click();
+    await page.keyboard.type(v);
+  }
+  await page.screenshot({ path: test.info().outputPath('body-filled.png'), fullPage: false });
+  await expect(page.getByRole('button', { name: 'Save measurement' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Save measurement' }).click();
+  await expect(page.getByRole('status')).toHaveText(/^Saved\./);
+  await expect(page.getByText('waist 81.5 · hip 94 · chest 92.5 · arm 28 · thigh 52 · neck 35')).toBeVisible();
 });
